@@ -1,0 +1,3 @@
+# Vendor properties for NX669S
+ro.hardware.keystore=lahaina
+ro.hardware.gatekeeper=lahaina

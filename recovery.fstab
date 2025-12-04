@@ -1,47 +1,91 @@
-# Android fstab file for TWRP Recovery
-# Device: NX669J/NX669S (Red Magic 6S Pro)
-# Platform: SM8350 (Lahaina)
-# Collected: 2025-12-04
+# Copyright (c) 2018-2019 The Linux Foundation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted (subject to the limitations in the
+# disclaimer below) provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#
+#    * Redistributions in binary form must reproduce the above
+#      copyright notice, this list of conditions and the following
+#      disclaimer in the documentation and/or other materials provided
+#      with the distribution.
+#
+#    * Neither the name of The Linux Foundation nor the names of its
+#      contributors may be used to endorse or promote products derived
+#      from this software without specific prior written permission.
+#
+# NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+# GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+# HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+# GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# mount point  fstype  device                                  flags
+# Android fstab file.
+# The filesystem that contains the filesystem e checker binary (typically /system) cannot
+# specify MF_CHECK, and must come before any filesystems that do specify MF_CHECK
 
-# Boot partitions (A/B)
-/boot          emmc    /dev/block/bootdevice/by-name/boot      flags=display="Boot";slotselect;flashimg=1;backup=1
-/dtbo          emmc    /dev/block/bootdevice/by-name/dtbo      flags=display="DTBO";slotselect;flashimg=1;backup=1
-/vbmeta        emmc    /dev/block/bootdevice/by-name/vbmeta    flags=display="VBMeta";slotselect;flashimg=1;backup=1
-/vbmeta_system emmc    /dev/block/bootdevice/by-name/vbmeta_system  flags=display="VBMeta System";slotselect;flashimg=1;backup=1
-/vendor_boot   emmc    /dev/block/bootdevice/by-name/vendor_boot    flags=display="Vendor Boot";slotselect;flashimg=1;backup=1
+#<src>                                                 <mnt_point>            <type>  <mnt_flags and options>                            <fs_mgr_flags>
 
-# Super partition (contains dynamic partitions)
-/super         emmc    /dev/block/bootdevice/by-name/super     flags=display="Super";backup=0;flashimg=1
+# Logical partitions - ext4 (Needed for Custom ROMs)
+system                                                  /system                ext4    ro,barrier=1,discard                               wait,slotselect,avb=vbmeta_system,logical,first_stage_mount,avb_keys=/avb/q-gsi.avbpubkey:/avb/r-gsi.avbpubkey:/avb/s-gsi.avbpubkey
+product                                                 /product               ext4    ro,barrier=1,discard                               wait,slotselect,avb=vbmeta_system,logical,first_stage_mount
+vendor                                                  /vendor                ext4    ro,barrier=1,discard                               wait,slotselect,avb,logical,first_stage_mount
+odm                                                     /odm                   ext4    ro,barrier=1,discard                               wait,slotselect,avb,logical,first_stage_mount
+system_ext                                              /system_ext            ext4    ro,barrier=1,discard                               wait,slotselect,avb=vbmeta_system,logical,first_stage_mount,display=System_EXT
 
-# System partitions (Dynamic - mapped from super)
-system         /system     ext4    logical                      flags=display="System"
-system_ext     /system_ext ext4    logical                      flags=display="System Ext"
-product        /product    ext4    logical                      flags=display="Product"
-vendor         /vendor     ext4    logical                      flags=display="Vendor"
-odm            /odm        ext4    logical                      flags=display="ODM"
+# Logical partitions - erofs (Needed for Stock ROM)
+system                                                  /system                erofs   ro                                                 wait,slotselect,avb=vbmeta_system,logical,first_stage_mount,avb_keys=/avb/q-gsi.avbpubkey:/avb/r-gsi.avbpubkey:/avb/s-gsi.avbpubkey
+product                                                 /product               erofs   ro                                                 wait,slotselect,avb=vbmeta_system,logical,first_stage_mount
+vendor                                                  /vendor                erofs   ro                                                 wait,slotselect,avb,logical,first_stage_mount
+odm                                                     /odm                   erofs   ro                                                 wait,slotselect,avb,logical,first_stage_mount
+system_ext                                              /system_ext            erofs   ro                                                 wait,slotselect,avb=vbmeta_system,logical,first_stage_mount
 
-# Data and metadata
-/data          f2fs    /dev/block/bootdevice/by-name/userdata  flags=display="Data";fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0
-/metadata      ext4    /dev/block/bootdevice/by-name/metadata  flags=display="Metadata";backup=1;wrappedkey
+# Userdata partition - Collected from device: /dev/block/sda12
+/dev/block/bootdevice/by-name/userdata                  /data                  f2fs    noatime,nosuid,nodev,discard,reserve_root=32768,resgid=1065,fsync_mode=nobarrier,inlinecrypt    latemount,wait,check,formattable,fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0,keydirectory=/metadata/vold/metadata_encryption,metadata_encryption=aes-256-xts:wrappedkey_v0,quota,reservedsize=128M,sysfs_path=/sys/devices/platform/soc/1d84000.ufshc,checkpoint=fs
 
-# Firmware partitions (A/B, read-only)
-/modem         emmc    /dev/block/bootdevice/by-name/modem     flags=display="Modem";slotselect;backup=1;flashimg=1
-/bluetooth     emmc    /dev/block/bootdevice/by-name/bluetooth flags=display="Bluetooth";slotselect;backup=1;flashimg=1
-/dsp           emmc    /dev/block/bootdevice/by-name/dsp       flags=display="DSP";slotselect;backup=1;flashimg=1
+# Metadata partition - Collected from device: /dev/block/sda10
+/dev/block/by-name/metadata                             /metadata              ext4    noatime,nosuid,nodev,discard                       wait,check,formattable,first_stage_mount,display=Metadata
 
-# Persistent partitions
-/persist       ext4    /dev/block/bootdevice/by-name/persist   flags=display="Persist";backup=1
-/persist_image emmc    /dev/block/bootdevice/by-name/persist   flags=display="Persist";backup=1;flashimg=1
+# Misc partition - Collected from device: /dev/block/sda3
+/dev/block/bootdevice/by-name/misc                      /misc                  emmc    defaults                                           defaults
 
-# EFS partitions
-/efs1          emmc    /dev/block/bootdevice/by-name/modemst1  flags=display="EFS";backup=1
-/efs2          emmc    /dev/block/bootdevice/by-name/modemst2  flags=display="EFS2";backup=1;subpartitionof=/efs1
+# Boot partitions - Collected from device
+/dev/block/bootdevice/by-name/boot                      /boot                  emmc    defaults                                           slotselect,display=Boot
+/dev/block/bootdevice/by-name/vendor_boot               /vendor_boot           emmc    defaults                                           slotselect,display=Vendor_Boot
+/dev/block/bootdevice/by-name/dtbo                      /dtbo                  emmc    defaults                                           slotselect,display=DTBO
+/dev/block/bootdevice/by-name/vbmeta                    /vbmeta                emmc    defaults                                           slotselect,display=VBMeta
+/dev/block/bootdevice/by-name/vbmeta_system             /vbmeta_system         emmc    defaults                                           slotselect,display=VBMeta_System
 
-# Misc
-/misc          emmc    /dev/block/bootdevice/by-name/misc      flags=display="Misc"
+# Firmware partitions - Collected from device
+/dev/block/bootdevice/by-name/modem                     /modem                 emmc    defaults                                           slotselect,display=Modem
+/dev/block/bootdevice/by-name/bluetooth                 /bluetooth             emmc    defaults                                           slotselect,display=Bluetooth
+/dev/block/bootdevice/by-name/dsp                       /dsp                   emmc    defaults                                           slotselect,display=DSP
+
+# EFS partitions - Collected from device
+/dev/block/bootdevice/by-name/modemst1                  /efs1                  emmc    defaults                                           display=EFS1
+/dev/block/bootdevice/by-name/modemst2                  /efs2                  emmc    defaults                                           display=EFS2
+/dev/block/bootdevice/by-name/fsg                       /fsg                   emmc    defaults                                           display=FSG
+/dev/block/bootdevice/by-name/fsc                       /fsc                   emmc    defaults                                           display=FSC
+
+# Persist partition - Collected from device: /dev/block/sda2
+/dev/block/bootdevice/by-name/persist                   /persist               ext4    noatime,nosuid,nodev,barrier=1                     wait,display=Persist
+
+# Keystore - Collected from device: /dev/block/sda5
+/dev/block/bootdevice/by-name/keystore                  /keystore              emmc    defaults                                           display=Keystore
+
+# FRP - Collected from device: /dev/block/sda6
+/dev/block/bootdevice/by-name/frp                       /frp                   emmc    defaults                                           display=FRP
 
 # External storage
-/external_sd   vfat    /dev/block/mmcblk0p1  /dev/block/mmcblk0    flags=display="MicroSD";storage;wipeingui;removable
-/usb_otg       vfat    /dev/block/sda1       /dev/block/sda        flags=display="USB-OTG";storage;wipeingui;removable
+/dev/block/mmcblk0p1                                    /external_sd           auto    defaults                                           display=MicroSD
+/dev/block/sda                                          /usb_otg               auto    defaults                                           display=USB-OTG

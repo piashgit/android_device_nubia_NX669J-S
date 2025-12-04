@@ -1,0 +1,7 @@
+# System properties for NX669S
+ro.hardware.keystore=lahaina
+ro.hardware.gatekeeper=lahaina
+sys.usb.controller=a600000.dwc3
+sys.usb.ffs.ready=0
+persist.sys.usb.config=mtp,adb
+ro.adb.nonblocking_ffs=0
