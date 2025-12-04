@@ -6,7 +6,7 @@
 #
 
 PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/twrp_NX669J-S.mk
+    $(LOCAL_DIR)/twrp_NX669S.mk
 
 COMMON_LUNCH_CHOICES := \
-    twrp_NX669J-S-eng
+    twrp_NX669S-eng

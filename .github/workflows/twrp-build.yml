@@ -36,8 +36,8 @@ jobs:
     
     env:
       TWRP_BRANCH: ${{ github.event.inputs.TWRP_BRANCH || 'twrp-12.1' }}
-      DEVICE: NX669J-S
-      DEVICE_PATH: device/nubia/NX669J-S
+      DEVICE: NX669S
+      DEVICE_PATH: device/nubia/NX669S
       BUILD_TYPE: ${{ github.event.inputs.BUILD_TYPE || 'eng' }}
       
     steps:
@@ -120,13 +120,13 @@ jobs:
         run: |
           cd ~/work/twrp
           mkdir -p device/nubia
-          cp -r $GITHUB_WORKSPACE/${{ env.DEVICE_PATH }} device/nubia/NX669J-S
+          cp -r $GITHUB_WORKSPACE/${{ env.DEVICE_PATH }} device/nubia/NX669S
           
       - name: Check Device Tree
         run: |
           cd ~/work/twrp
-          ls -la device/nubia/NX669J-S/
-          cat device/nubia/NX669J-S/BoardConfig.mk | head -20
+          ls -la device/nubia/NX669S/
+          cat device/nubia/NX669S/BoardConfig.mk | head -20
           
       - name: Setup Build Environment Variables
         run: |
