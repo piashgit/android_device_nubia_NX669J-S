@@ -104,6 +104,7 @@ BOARD_USERDATAIMAGE_FILE_SYSTEM_TYPE := f2fs
 # Workaround for error copying vendor files to recovery ramdisk
 TARGET_COPY_OUT_VENDOR := vendor
 TARGET_COPY_OUT_PRODUCT := product
+TARGET_COPY_OUT_SYSTEM_EXT := system_ext
 
 # A/B Device
 AB_OTA_UPDATER := true
