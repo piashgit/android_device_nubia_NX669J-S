@@ -127,7 +127,7 @@ jobs:
           ls -lh out/target/product/${{ env.DEVICE }}/ | grep -E "recovery|boot"
           
       - name: Upload Recovery Image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: TWRP-${{ env.DEVICE }}-${{ env.TWRP_BRANCH }}-${{ github.run_number }}
           path: |
