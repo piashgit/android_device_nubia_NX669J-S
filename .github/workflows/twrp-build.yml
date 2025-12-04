@@ -48,10 +48,12 @@ jobs:
           
       - name: Cleanup
         run: |
-          docker rmi $(docker images -q) || true
-          sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android
-          sudo apt-get -y purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* mysql* php* mongodb* moby* snap*
+          docker rmi $(docker images -q) 2>/dev/null || true
+          sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android || true
+          sudo apt-get -y purge azure-cli firefox || true
+          sudo apt-get -y autoremove || true
           sudo apt-get clean
+          df -h
           
       - name: Set Swap Space
         uses: pierotofy/set-swap-space@master
