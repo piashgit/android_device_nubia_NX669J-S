@@ -9,6 +9,4 @@ PRODUCT_MAKEFILES := \
     $(LOCAL_DIR)/twrp_NX669J-S.mk
 
 COMMON_LUNCH_CHOICES := \
-    twrp_NX669J-S-user \
-    twrp_NX669J-S-userdebug \
     twrp_NX669J-S-eng
