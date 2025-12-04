@@ -142,28 +142,32 @@ jobs:
           export ALLOW_MISSING_DEPENDENCIES=true
           export LC_ALL=C
           lunch twrp_${{ env.DEVICE }}-${{ env.BUILD_TYPE }}
-          mka recoveryimage -j$(nproc --all)
+          # For A/B devices with recovery-as-boot, build bootimage
+          mka bootimage -j$(nproc --all)
           
       - name: Check Build Output
         run: |
           cd ~/work/twrp
-          ls -lh out/target/product/${{ env.DEVICE }}/recovery.img || echo "Recovery image not found"
-          ls -lh out/target/product/${{ env.DEVICE }}/ | grep -E "recovery|boot"
+          echo "=== All output files ==="
+          ls -lh out/target/product/${{ env.DEVICE }}/*.img 2>/dev/null || echo "No .img files found"
+          echo "=== Looking for boot/recovery ==="
+          ls -lh out/target/product/${{ env.DEVICE }}/boot.img 2>/dev/null || echo "boot.img not found"
+          ls -lh out/target/product/${{ env.DEVICE }}/recovery.img 2>/dev/null || echo "recovery.img not found"
           
       - name: Upload Recovery Image
         uses: actions/upload-artifact@v4
         with:
           name: TWRP-${{ env.DEVICE }}-${{ env.TWRP_BRANCH }}-${{ github.run_number }}
           path: |
+            ~/work/twrp/out/target/product/${{ env.DEVICE }}/boot.img
             ~/work/twrp/out/target/product/${{ env.DEVICE }}/recovery.img
-            ~/work/twrp/out/target/product/${{ env.DEVICE }}/recovery.img.tar
             
       - name: Create Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ~/work/twrp/out/target/product/${{ env.DEVICE }}/recovery.img
+            ~/work/twrp/out/target/product/${{ env.DEVICE }}/boot.img
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
@@ -175,9 +179,9 @@ jobs:
           echo "**TWRP Branch:** ${{ env.TWRP_BRANCH }}" >> $GITHUB_STEP_SUMMARY
           echo "**Build Type:** ${{ env.BUILD_TYPE }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f ~/work/twrp/out/target/product/${{ env.DEVICE }}/recovery.img ]; then
-            SIZE=$(du -h ~/work/twrp/out/target/product/${{ env.DEVICE }}/recovery.img | cut -f1)
-            echo "**Recovery Size:** $SIZE" >> $GITHUB_STEP_SUMMARY
+          if [ -f ~/work/twrp/out/target/product/${{ env.DEVICE }}/boot.img ]; then
+            SIZE=$(du -h ~/work/twrp/out/target/product/${{ env.DEVICE }}/boot.img | cut -f1)
+            echo "**Boot Image Size:** $SIZE" >> $GITHUB_STEP_SUMMARY
             echo "✅ **Status:** Build Successful" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Status:** Build Failed" >> $GITHUB_STEP_SUMMARY
