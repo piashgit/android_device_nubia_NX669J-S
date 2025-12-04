@@ -33,7 +33,6 @@ jobs:
   build:
     name: Build TWRP Recovery
     runs-on: ubuntu-20.04
-    if: github.event.repository.owner.id == github.event.sender.id
     
     env:
       TWRP_BRANCH: ${{ github.event.inputs.TWRP_BRANCH || 'twrp-12.1' }}
