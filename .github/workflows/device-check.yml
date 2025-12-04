@@ -1,0 +1,131 @@
+name: Device Tree Validation
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+
+jobs:
+  validate:
+    name: Validate Device Tree
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+      - name: Check Required Files
+        run: |
+          echo "Checking required files..."
+          
+          FILES=(
+            "AndroidProducts.mk"
+            "BoardConfig.mk"
+            "device.mk"
+            "recovery.fstab"
+            "twrp_NX669J-S.mk"
+            "vendorsetup.sh"
+          )
+          
+          MISSING=0
+          for file in "${FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✓ $file found"
+            else
+              echo "✗ $file missing"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          
+          if [ $MISSING -gt 0 ]; then
+            echo "❌ $MISSING required files missing!"
+            exit 1
+          else
+            echo "✅ All required files present"
+          fi
+          
+      - name: Validate BoardConfig
+        run: |
+          echo "Validating BoardConfig.mk..."
+          
+          REQUIRED=(
+            "TARGET_BOARD_PLATFORM"
+            "TARGET_ARCH"
+            "BOARD_KERNEL_PAGESIZE"
+            "BOARD_BOOTIMAGE_PARTITION_SIZE"
+            "AB_OTA_UPDATER"
+            "TARGET_RECOVERY_FSTAB"
+          )
+          
+          MISSING=0
+          for var in "${REQUIRED[@]}"; do
+            if grep -q "^$var" BoardConfig.mk; then
+              echo "✓ $var defined"
+            else
+              echo "✗ $var not found"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          
+          if [ $MISSING -gt 0 ]; then
+            echo "❌ $MISSING required variables missing in BoardConfig.mk"
+            exit 1
+          else
+            echo "✅ BoardConfig.mk validation passed"
+          fi
+          
+      - name: Validate recovery.fstab
+        run: |
+          echo "Validating recovery.fstab..."
+          
+          if [ ! -f "recovery.fstab" ]; then
+            echo "❌ recovery.fstab not found"
+            exit 1
+          fi
+          
+          PARTITIONS=(
+            "/boot"
+            "/data"
+            "/super"
+          )
+          
+          MISSING=0
+          for part in "${PARTITIONS[@]}"; do
+            if grep -q "^$part" recovery.fstab; then
+              echo "✓ $part defined"
+            else
+              echo "✗ $part not found"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          
+          if [ $MISSING -gt 0 ]; then
+            echo "⚠️ Some critical partitions missing in fstab"
+          else
+            echo "✅ recovery.fstab validation passed"
+          fi
+          
+      - name: Check Prebuilt Kernel
+        run: |
+          echo "Checking prebuilt kernel..."
+          
+          if [ -f "prebuilt/Image" ]; then
+            SIZE=$(du -h prebuilt/Image | cut -f1)
+            echo "✓ Kernel Image found (Size: $SIZE)"
+          else
+            echo "⚠️ Prebuilt kernel not found"
+            echo "Make sure TARGET_PREBUILT_KERNEL is set correctly"
+          fi
+          
+      - name: Summary
+        run: |
+          echo "## Device Tree Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Device:** NX669J-S (Red Magic 6S Pro)" >> $GITHUB_STEP_SUMMARY
+          echo "**Platform:** SM8350 (Lahaina)" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ✅ Validation Passed" >> $GITHUB_STEP_SUMMARY

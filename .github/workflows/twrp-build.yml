@@ -1,0 +1,161 @@
+name: TWRP Build - NX669J-S
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+    inputs:
+      TWRP_BRANCH:
+        description: 'TWRP Branch'
+        required: true
+        default: 'twrp-12.1'
+        type: choice
+        options:
+          - twrp-12.1
+          - twrp-11
+      BUILD_TYPE:
+        description: 'Build Type'
+        required: true
+        default: 'eng'
+        type: choice
+        options:
+          - eng
+          - userdebug
+          - user
+
+jobs:
+  build:
+    name: Build TWRP Recovery
+    runs-on: ubuntu-20.04
+    if: github.event.repository.owner.id == github.event.sender.id
+    
+    env:
+      TWRP_BRANCH: ${{ github.event.inputs.TWRP_BRANCH || 'twrp-12.1' }}
+      DEVICE: NX669J-S
+      DEVICE_PATH: device/nubia/NX669J-S
+      BUILD_TYPE: ${{ github.event.inputs.BUILD_TYPE || 'eng' }}
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: ${{ env.DEVICE_PATH }}
+          
+      - name: Cleanup
+        run: |
+          docker rmi $(docker images -q) || true
+          sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android
+          sudo apt-get -y purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* mysql* php* mongodb* moby* snap*
+          sudo apt-get clean
+          
+      - name: Set Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
+          
+      - name: Check Available Space
+        run: |
+          echo "Available space:"
+          df -h
+          
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison build-essential ccache curl flex \
+            g++-multilib gcc-multilib git gnupg gperf \
+            imagemagick lib32ncurses5-dev lib32readline-dev \
+            lib32z1-dev liblz4-tool libncurses5 libncurses5-dev \
+            libsdl1.2-dev libssl-dev libxml2 libxml2-utils \
+            lzop pngcrush rsync schedtool squashfs-tools \
+            xsltproc zip zlib1g-dev python3 python-is-python3 \
+            repo adb fastboot
+            
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          max-size: 10G
+          
+      - name: Initialize TWRP Source
+        run: |
+          mkdir -p ~/work/twrp
+          cd ~/work/twrp
+          repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b ${{ env.TWRP_BRANCH }}
+          
+      - name: Sync TWRP Source
+        run: |
+          cd ~/work/twrp
+          repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)
+          
+      - name: Clone Device Tree
+        run: |
+          cd ~/work/twrp
+          mkdir -p device/nubia
+          cp -r $GITHUB_WORKSPACE/${{ env.DEVICE_PATH }} device/nubia/NX669J-S
+          
+      - name: Check Device Tree
+        run: |
+          cd ~/work/twrp
+          ls -la device/nubia/NX669J-S/
+          cat device/nubia/NX669J-S/BoardConfig.mk | head -20
+          
+      - name: Setup Build Environment Variables
+        run: |
+          cd ~/work/twrp
+          source build/envsetup.sh
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export LC_ALL=C
+          
+      - name: Build TWRP Recovery
+        run: |
+          cd ~/work/twrp
+          source build/envsetup.sh
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export LC_ALL=C
+          lunch twrp_${{ env.DEVICE }}-${{ env.BUILD_TYPE }}
+          mka recoveryimage -j$(nproc --all)
+          
+      - name: Check Build Output
+        run: |
+          cd ~/work/twrp
+          ls -lh out/target/product/${{ env.DEVICE }}/recovery.img || echo "Recovery image not found"
+          ls -lh out/target/product/${{ env.DEVICE }}/ | grep -E "recovery|boot"
+          
+      - name: Upload Recovery Image
+        uses: actions/upload-artifact@v3
+        with:
+          name: TWRP-${{ env.DEVICE }}-${{ env.TWRP_BRANCH }}-${{ github.run_number }}
+          path: |
+            ~/work/twrp/out/target/product/${{ env.DEVICE }}/recovery.img
+            ~/work/twrp/out/target/product/${{ env.DEVICE }}/recovery.img.tar
+            
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ~/work/twrp/out/target/product/${{ env.DEVICE }}/recovery.img
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Build Summary
+        run: |
+          echo "## Build Complete! :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Device:** ${{ env.DEVICE }}" >> $GITHUB_STEP_SUMMARY
+          echo "**TWRP Branch:** ${{ env.TWRP_BRANCH }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Type:** ${{ env.BUILD_TYPE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f ~/work/twrp/out/target/product/${{ env.DEVICE }}/recovery.img ]; then
+            SIZE=$(du -h ~/work/twrp/out/target/product/${{ env.DEVICE }}/recovery.img | cut -f1)
+            echo "**Recovery Size:** $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Status:** Build Successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Build Failed" >> $GITHUB_STEP_SUMMARY
+          fi
