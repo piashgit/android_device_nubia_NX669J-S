@@ -1,0 +1,23 @@
+# Build outputs
+out/
+*.o
+*.ko
+*.a
+
+# Temporary files
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Logs
+*.log
+
+# Sensitive
+*.token
+.env
