@@ -32,7 +32,7 @@ on:
 jobs:
   build:
     name: Build TWRP Recovery
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     
     env:
       TWRP_BRANCH: ${{ github.event.inputs.TWRP_BRANCH || 'twrp-12.1' }}
