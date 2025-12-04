@@ -83,16 +83,27 @@ jobs:
         with:
           max-size: 10G
           
+      - name: Install Repo Tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "$HOME/bin" >> $GITHUB_PATH
+          
       - name: Initialize TWRP Source
         run: |
+          export PATH="$HOME/bin:$PATH"
           mkdir -p ~/work/twrp
           cd ~/work/twrp
-          repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b ${{ env.TWRP_BRANCH }}
+          git config --global user.email "runner@github.com"
+          git config --global user.name "GitHub Runner"
+          ~/bin/repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b ${{ env.TWRP_BRANCH }}
           
       - name: Sync TWRP Source
         run: |
+          export PATH="$HOME/bin:$PATH"
           cd ~/work/twrp
-          repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all)
+          ~/bin/repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all) || ~/bin/repo sync -c --force-sync -j4
           
       - name: Clone Device Tree
         run: |
