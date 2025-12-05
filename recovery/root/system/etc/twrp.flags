@@ -1,0 +1,10 @@
+# TWRP flags file for NX669S
+# mount point    fstype    device                                    flags
+
+/data            auto      /dev/block/by-name/userdata               flags=display=Data;backup=1;wipeingui
+/metadata        ext4      /dev/block/by-name/metadata               flags=display=Metadata;backup=1
+/boot            emmc      /dev/block/by-name/boot                   flags=display=Boot;slotselect;backup=1;flashimg=1
+/vendor_boot     emmc      /dev/block/by-name/vendor_boot            flags=display=Vendor_Boot;slotselect;backup=1;flashimg=1
+/persist         ext4      /dev/block/by-name/persist                flags=display=Persist;backup=1
+/efs1            emmc      /dev/block/by-name/modemst1               flags=display=EFS1;backup=1
+/efs2            emmc      /dev/block/by-name/modemst2               flags=display=EFS2;backup=1
