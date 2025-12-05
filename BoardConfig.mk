@@ -1,6 +1,6 @@
 #
 # Copyright (C) 2024 The Android Open Source Project
-# Copyright (C) 2024 TeamWin Recovery Project
+# Copyright (C) 2024 PitchBlack Recovery Project
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -165,3 +165,9 @@ TW_INCLUDE_FASTBOOTD := true
 # Debugging
 TWRP_INCLUDE_LOGCAT := true
 TARGET_USES_LOGD := true
+
+# PitchBlack Recovery Configuration
+PB_DISABLE_DEFAULT_DM_VERITY := true
+PB_DISABLE_DEFAULT_TREBLE_COMP := true
+PB_TORCH_PATH := "/sys/class/leds/led:torch_0"
+PB_TORCH_MAX_BRIGHTNESS := 200

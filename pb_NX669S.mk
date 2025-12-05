@@ -1,6 +1,6 @@
 #
 # Copyright (C) 2024 The Android Open Source Project
-# Copyright (C) 2024 TeamWin Recovery Project
+# Copyright (C) 2024 PitchBlack Recovery Project
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -9,14 +9,14 @@
 $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/base.mk)
 
-# Inherit some common TWRP stuff.
-$(call inherit-product, vendor/twrp/config/common.mk)
+# Inherit some common PitchBlack stuff.
+$(call inherit-product, vendor/pb/config/common.mk)
 
 # Inherit from device
 $(call inherit-product, device/nubia/NX669S/device.mk)
 
 PRODUCT_DEVICE := NX669S
-PRODUCT_NAME := twrp_NX669S
+PRODUCT_NAME := pb_NX669S
 PRODUCT_BRAND := nubia
 PRODUCT_MODEL := NX669J
 PRODUCT_MANUFACTURER := nubia
