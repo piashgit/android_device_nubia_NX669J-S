@@ -20,7 +20,7 @@ odm                                                     /odm                   e
 
 # Userdata - sda12 (227136332 blocks = ~217GB)
 # Device has ro.crypto.state=unsupported - NO ENCRYPTION
-/dev/block/by-name/userdata                             /data                  f2fs    noatime,nosuid,nodev,discard                           wait,check,formattable
+/dev/block/by-name/userdata                             /data                  auto    defaults                                               wait,check,formattable,latemount
 
 # Metadata - sda10 (16384 blocks = 16MB)
 /dev/block/by-name/metadata                  /metadata              ext4    noatime,nosuid,nodev,discard                       wait,check,formattable,first_stage_mount

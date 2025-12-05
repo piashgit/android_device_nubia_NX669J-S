@@ -42,7 +42,7 @@ vendor                                                  /vendor                e
 odm                                                     /odm                   ext4    ro,barrier=1,discard                                 wait,slotselect,logical,first_stage_mount
 /dev/block/by-name/metadata                             /metadata              ext4    noatime,nosuid,nodev,discard                         wait,check,formattable,first_stage_mount
 /dev/block/by-name/persist                   /mnt/vendor/persist    ext4    noatime,nosuid,nodev,barrier=1                       wait
-/dev/block/by-name/userdata                             /data                  f2fs    noatime,nosuid,nodev,discard                           wait,check,formattable
+/dev/block/by-name/userdata                             /data                  auto    defaults                                               wait,check,formattable,latemount
 /dev/block/by-name/misc                      /misc                  emmc    defaults                                             defaults
 #/devices/platform/soc/8804000.sdhci/mmc_host*           /storage/sdcard1       vfat    nosuid,nodev                                         wait,voldmanaged=sdcard1:auto
 #/devices/platform/soc/1da4000.ufshc_card/host*          /storage/sdcard1       vfat    nosuid,nodev                                         wait,voldmanaged=sdcard1:auto
