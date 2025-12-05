@@ -1,0 +1,182 @@
+name: PitchBlack Recovery Build - NX669S
+
+on:
+  push:
+    branches:
+      - pbrp
+  pull_request:
+    branches:
+      - pbrp
+  workflow_dispatch:
+    inputs:
+      PBRP_BRANCH:
+        description: 'PBRP Branch'
+        required: true
+        default: 'android-12.1'
+        type: choice
+        options:
+          - android-12.1
+          - android-11.0
+      BUILD_TYPE:
+        description: 'Build Type'
+        required: true
+        default: 'eng'
+        type: choice
+        options:
+          - eng
+          - userdebug
+          - user
+
+jobs:
+  build:
+    name: Build PitchBlack Recovery
+    runs-on: ubuntu-22.04
+    
+    env:
+      PBRP_BRANCH: ${{ github.event.inputs.PBRP_BRANCH || 'android-12.1' }}
+      DEVICE: NX669S
+      DEVICE_PATH: device/nubia/NX669S
+      BUILD_TYPE: ${{ github.event.inputs.BUILD_TYPE || 'eng' }}
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: ${{ env.DEVICE_PATH }}
+          
+      - name: Cleanup
+        run: |
+          echo "Before cleanup:"
+          df -h
+          docker rmi $(docker images -q) 2>/dev/null || true
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          sudo rm -rf /usr/local/share/boost || true
+          sudo rm -rf /usr/share/swift || true
+          sudo rm -rf /usr/local/.ghcup || true
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
+          sudo apt-get -y purge azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox || true
+          sudo apt-get -y purge dotnet-* mono-* || true
+          sudo apt-get -y autoremove --purge || true
+          sudo apt-get clean
+          echo "After cleanup:"
+          df -h
+          
+      - name: Set Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
+          
+      - name: Check Available Space
+        run: |
+          echo "Available space:"
+          df -h
+          
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison build-essential ccache curl flex \
+            g++-multilib gcc-multilib git gnupg gperf \
+            imagemagick lib32ncurses5-dev lib32readline-dev \
+            lib32z1-dev liblz4-tool libncurses5-dev \
+            libssl-dev libxml2 libxml2-utils \
+            lzop pngcrush rsync schedtool squashfs-tools \
+            xsltproc zip zlib1g-dev python3 python-is-python3 \
+            repo
+            
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          max-size: 10G
+          
+      - name: Install Repo Tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "$HOME/bin" >> $GITHUB_PATH
+          
+      - name: Initialize PBRP Source
+        run: |
+          export PATH="$HOME/bin:$PATH"
+          mkdir -p ~/work/pbrp
+          cd ~/work/pbrp
+          git config --global user.email "runner@github.com"
+          git config --global user.name "GitHub Runner"
+          ~/bin/repo init --depth=1 -u https://github.com/PitchBlackRecoveryProject/manifest_pb.git -b ${{ env.PBRP_BRANCH }}
+          
+      - name: Sync PBRP Source
+        run: |
+          export PATH="$HOME/bin:$PATH"
+          cd ~/work/pbrp
+          ~/bin/repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune --force-sync -j$(nproc --all) || ~/bin/repo sync -c --force-sync -j4
+          
+      - name: Clone Device Tree
+        run: |
+          cd ~/work/pbrp
+          mkdir -p device/nubia
+          cp -r $GITHUB_WORKSPACE/${{ env.DEVICE_PATH }} device/nubia/NX669S
+          
+      - name: Check Device Tree
+        run: |
+          cd ~/work/pbrp
+          ls -la device/nubia/NX669S/
+          cat device/nubia/NX669S/BoardConfig.mk | head -20
+          
+      - name: Build PitchBlack Recovery
+        run: |
+          cd ~/work/pbrp
+          source build/envsetup.sh
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export LC_ALL=C
+          lunch pb_${{ env.DEVICE }}-${{ env.BUILD_TYPE }}
+          mka pbrp -j$(nproc --all)
+          
+      - name: Check Build Output
+        run: |
+          cd ~/work/pbrp
+          echo "=== All output files ==="
+          ls -lh out/target/product/${{ env.DEVICE }}/*.img 2>/dev/null || echo "No .img files found"
+          ls -lh out/target/product/${{ env.DEVICE }}/*.zip 2>/dev/null || echo "No .zip files found"
+          echo "=== Looking for boot/recovery ==="
+          ls -lh out/target/product/${{ env.DEVICE }}/boot.img 2>/dev/null || echo "boot.img not found"
+          ls -lh out/target/product/${{ env.DEVICE }}/recovery.img 2>/dev/null || echo "recovery.img not found"
+          ls -lh out/target/product/${{ env.DEVICE }}/PBRP*.zip 2>/dev/null || echo "PBRP zip not found"
+          
+      - name: Upload Recovery Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: PBRP-${{ env.DEVICE }}-${{ env.PBRP_BRANCH }}-${{ github.run_number }}
+          path: |
+            ~/work/pbrp/out/target/product/${{ env.DEVICE }}/boot.img
+            ~/work/pbrp/out/target/product/${{ env.DEVICE }}/recovery.img
+            ~/work/pbrp/out/target/product/${{ env.DEVICE }}/PBRP*.zip
+            
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ~/work/pbrp/out/target/product/${{ env.DEVICE }}/boot.img
+            ~/work/pbrp/out/target/product/${{ env.DEVICE }}/PBRP*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Build Summary
+        run: |
+          echo "## PitchBlack Recovery Build Complete! :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Device:** ${{ env.DEVICE }}" >> $GITHUB_STEP_SUMMARY
+          echo "**PBRP Branch:** ${{ env.PBRP_BRANCH }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Type:** ${{ env.BUILD_TYPE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f ~/work/pbrp/out/target/product/${{ env.DEVICE }}/boot.img ]; then
+            SIZE=$(du -h ~/work/pbrp/out/target/product/${{ env.DEVICE }}/boot.img | cut -f1)
+            echo "**Boot Image Size:** $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Status:** Build Successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Build Failed" >> $GITHUB_STEP_SUMMARY
+          fi
